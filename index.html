@@ -687,10 +687,8 @@ function onBeat(bi){// 拍点光：判定圈、蔬菜律动
 // 当前时刻离最近拍点的距离（秒）——用 8 分音符做网格，第二档更宽容
 function beatOffset(){const b=songBeat(),sp=RH.spb,d=(b-Math.round(b))*sp,d8=(b*2-Math.round(b*2))*sp/2;return Math.abs(d)<=Math.abs(d8)*1.6?d:d8}
 // 击杀钩子：奏旋律 + 踩点判定
-function rhythmHit(x,y,z,big){if(!RH.on)return 1;const j=RH.j,m=RH.mel[RH.mi++%RH.mel.length];let k=1;
- if(j=='perfect'){k=2;beatFx(x,y,z,'Perfect',GOLD)}else if(j=='good')beatFx(x,y,z,'Good',JCOL2);
- if(SFX.on&&SFX.ctx&&MUS.bus){let t;if(MUS.on){const st=RH.spb/4;t=MUS.start+Math.ceil((songTime()+.01)/st)*st}INS.lead(m+(big?12:0),j=='perfect'?1:.7,t)}
- return k}
+// 击杀：节奏得分已经在攒子弹时给过了，这里只加一声高音点缀（量化到下一个十六分音符）
+function rhythmHit(x,y,z,big){if(!RH.on)return 1;if(SFX.on&&SFX.ctx&&MUS.bus&&MUS.on){const st=RH.spb/4,t=MUS.start+Math.ceil((songTime()+.01)/st)*st;INS.lead(RH.mel[(RH.mi+3)%RH.mel.length]+12,.45,t)}return 1}
 const JCOL2='#7ee0ff';
 function beatFx(x,y,z,s,col){const p=worldToScreen(x,y+.4,z);G.beatFx=(G.beatFx||[]).concat([{x:p[0],y:p[1]-30,s,col,t:0}]).slice(-6)}
 // 漏/被咬：音乐变闷
@@ -707,22 +705,22 @@ function drawBeatHUD(c){if(!RH.on)return;const b=songBeat(),bp=((b%1)+1)%1,H=UI.
  // 节拍线：从两侧向中心收拢，到中心的那一刻就是拍点
  // 踩点条：叠在狂暴条上方，满了自动充满狂暴
  const fy=H-152+44;c.fillStyle='rgba(0,0,0,.45)';rr(c,404,fy-22,296,12,6);c.fill();c.fillStyle=GOLD;rr(c,404,fy-22,Math.max(12,296*RH.meter),12,6);c.fill();
- T(c,'Perfect 充能',410,fy-36,20,GOLD,'left');if(RH.streak>=2)T(c,'×'+RH.streak,700,fy-34,22,GOLD,'right');
+ T(c,'Perfect 充能狂暴',410,fy-36,20,GOLD,'left');if(RH.streak>=2)T(c,'×'+RH.streak,700,fy-34,22,GOLD,'right');
  for(const f of G.beatFx||[]){f.t+=1/60;c.globalAlpha=clamp(1.2-f.t*2,0,1);T(c,f.s,f.x,f.y-f.t*50,26,f.col);c.globalAlpha=1}G.beatFx=(G.beatFx||[]).filter(f=>f.t<.6)}
 
 // ---- data.js ----
 // ================= 数据：虫子、场景、关卡生成 =================
 // ges：手势 tap 点击 / dbl 点两下 / swipe 划过 / circle 画圈 / hold 长按翻面 / drag 拖出 / friend 别拍 / land 落地拍 / thread 划丝线 / slice 纵划 / mole 冒头拍
 const BT={
- ant:{name:'工蚁',ges:'tap',tip:'任意蔬菜都打得到',hp:1,spd:.85,pts:10,r:.36,y:.28,sc:1.4,model:'ant',splat:'#e0402e'},
+ ant:{name:'工蚁',ges:'tap',tip:'点它开火',hp:1,spd:.85,pts:10,r:.36,y:.28,sc:1.4,model:'ant',splat:'#e0402e'},
  helm:{name:'盔甲蚁',ges:'dbl',tip:'先破甲再打 · 南瓜锤一下砸死',hp:1,spd:.75,pts:20,r:.38,y:.32,sc:1.4,model:'antH',splat:'#e0402e'},
- fly:{name:'苍蝇',ges:'swipe',tip:'飞虫：只有茄子紫电够得着',hp:1,spd:1.25,pts:15,r:.34,y:.75,sc:1.4,model:'fly',splat:'#6a7a5a',air:1},
+ fly:{name:'苍蝇',ges:'swipe',tip:'飞虫：只有茄子的子弹打得到',hp:1,spd:1.25,pts:15,r:.34,y:.75,sc:1.4,model:'fly',splat:'#6a7a5a',air:1},
  aphid:{name:'蚜虫群',ges:'circle',tip:'血厚 · 番茄炸弹溅射一片',hp:2,spd:.45,pts:40,r:.6,y:.12,sc:1.35,model:'aphid',splat:'#a8e85a'},
- lady:{name:'七星瓢虫',ges:'friend',tip:'别打！挡在弹道上会误伤',hp:1,spd:.7,pts:-300,r:.36,y:.18,sc:1.4,model:'lady',splat:'#e8281e',friend:1},
- beetle:{name:'铁甲虫',ges:'hold',tip:'南瓜锤或 Perfect 才能翻面',hp:1,spd:.5,pts:40,r:.48,y:.25,sc:1.35,model:'beetle',splat:'#3d6fd0'},
+ lady:{name:'七星瓢虫',ges:'friend',tip:'别打！它吃蚜虫',hp:1,spd:.7,pts:-300,r:.36,y:.18,sc:1.4,model:'lady',splat:'#e8281e',friend:1},
+ beetle:{name:'铁甲虫',ges:'hold',tip:'南瓜锤一下翻面，别的要两发',hp:1,spd:.5,pts:40,r:.48,y:.25,sc:1.35,model:'beetle',splat:'#3d6fd0'},
  snail:{name:'蜗牛',ges:'drag',tip:'血厚，要打 3 下',hp:3,spd:.32,pts:50,r:.48,y:.3,sc:1.35,model:'snail',splat:'#c4703a'},
- locust:{name:'蝗虫',ges:'land',tip:'跳起时只有紫电够得着',hp:1,spd:1.1,pts:25,r:.4,y:.55,sc:1.3,model:'locust',splat:'#7cc63c'},
- spider:{name:'蜘蛛',ges:'thread',tip:'吊着时只有紫电够得着',hp:1,spd:1,pts:40,r:.42,y:.42,sc:1.3,model:'spider',splat:'#6b3fa8'},
+ locust:{name:'蝗虫',ges:'land',tip:'跳起时只有茄子打得到',hp:1,spd:1.1,pts:25,r:.4,y:.55,sc:1.3,model:'locust',splat:'#7cc63c'},
+ spider:{name:'蜘蛛',ges:'thread',tip:'吊着时只有茄子打得到',hp:1,spd:1,pts:40,r:.42,y:.42,sc:1.3,model:'spider',splat:'#6b3fa8'},
  cater:{name:'毛毛虫',ges:'slice',tip:'胡萝卜箭一穿到底；别的会把它打成两截',hp:1,spd:.5,pts:50,r:.3,y:.15,sc:1.3,model:'cater',splat:'#7ccc3c'},
  bomber:{name:'放屁虫',ges:'tap',tip:'被打会喷绿雾遮挡视线',hp:1,spd:.8,pts:30,r:.38,y:.22,sc:1.4,model:'bomber',splat:'#b9e06a'},
  mole:{name:'鼹鼠',ges:'mole',tip:'冒头时才打得到',hp:1,spd:0,pts:35,r:.5,y:.25,sc:1.3,model:'mole',splat:'#8a5a30'},
@@ -744,7 +742,7 @@ const SCENES=[
  {theme:'rain',intro:[['cater'],['bomber']],boss:'strider'},
  {theme:'forest',intro:[['mole']],boss:'king'},
 ];
-const NLV=40,DENS=2.2;// DENS：打鼓模式的虫子密度倍率
+const NLV=40,DENS=1.2;// DENS：虫子密度倍率（子弹数由节奏点决定）
 const lvName=i=>((i/8|0)+1)+'-'+(i%8+1);
 function poolUpTo(s,l){const p=[];for(let k=0;k<=s;k++)SCENES[k].intro.forEach((a,j)=>{if(k<s||j<=l)p.push(...a)});return p}
 // 关卡生成：同一关每次生成都一样（种子 = 关卡号）
@@ -752,7 +750,7 @@ function genLevel(idx,opt={}){const s=opt.scene??(idx/8|0),l=opt.l??(idx%8),boss
  const pool=opt.pool||poolUpTo(s,Math.min(l,SCENES[s].intro.length-1)),fresh=opt.pool?[]:(SCENES[s].intro[l]||[]),diff=opt.diff??(s*1+l*.14);
  const night=SCENES[s].theme=='night';
  const waves=[];const nW=boss?2:opt.waves||3;let est=0;
- for(let w=0;w<nW;w++){const dens=idx==0&&w==0&&!opt.pool?1.3:DENS,n=Math.round((5+diff*2.2+l*.8)*[.8,1,1.3,1.4,1.5][w]*(boss?.7:1)*dens),dur=12+w*2,list=[];
+ for(let w=0;w<nW;w++){const dens=idx==0&&w==0&&!opt.pool?1:DENS,n=Math.round((5+diff*2.2+l*.8)*[.8,1,1.3,1.4,1.5][w]*(boss?.7:1)*dens),dur=12+w*2,list=[];
   // 第一关第一波只有工蚁，打开就能上手
   for(let i=0;i<n;i++){let t;
    if(idx==0&&!opt.pool&&w==0)t='ant';
@@ -766,8 +764,8 @@ function genLevel(idx,opt={}){const s=opt.scene??(idx/8|0),l=opt.l??(idx%8),boss
   list.sort((a,b)=>a.at-b.at);waves.push({list,dur})}
  if(idx==0&&!opt.pool){waves[0].list.unshift({t:'ant',at:0,x:0,first:1})}
  const rush=!boss&&!opt.noRush;
- const spd=1.15+s*.07+l*.03+(opt.spdAdd||0);
- const target=Math.round((est*3.2+(rush?1200:0)+(boss?BOSS[SCENES[s].boss].pts:0)+5*400+(pool.includes('rhino')?2500:0))/100)*100;
+ const spd=1+s*.07+l*.03+(opt.spdAdd||0);
+ const target=Math.round((est*1.2+waves.reduce((m,w)=>m+w.dur,0)*(1.6+s*.2)*(boss?40:55)+(rush?1200:0)+(boss?BOSS[SCENES[s].boss].pts*.8:0)+5*400+(pool.includes('rhino')?2500:0))/100)*100;
  return {idx,s,l,theme:opt.theme||SCENES[s].theme,waves,rush,boss:boss?SCENES[s].boss:null,spd,target,pool,
   qtePerfect:[.15,.13,.11,.095,.08][s],slashN:[3,3,4,4,5][s],slashT:[.6,.6,.52,.46,.4][s],
   wind:SCENES[s].theme=='autumn',rain:SCENES[s].theme=='rain',spores:SCENES[s].theme=='forest'}}
@@ -810,7 +808,7 @@ function startLevel(def,mode='level'){
  G.vegs=VK.map((k,i)=>{const o=new THREE.Group();o.position.set(VX(i),0,VZ);DYN.add(o);const v={i,k,hp:3,mood:'',obj:o,shake:0,webbed:false,model:null};setVegMood(v,'');return v});
  CAM.position.copy(CAMHOME.pos);CAM.lookAt(CAMHOME.at);G.camGoal=null;G.lastHB=-1;G.muffle=0;G.beatFx=[];rhythmStart(def);drumReset();
  prewarm(def);R3.shadowMap.needsUpdate=true;
- banner(mode=='daily'?'每日挑战':mode=='endless'?'无尽模式':('关卡 '+lvName(def.idx)+'  '+THEME[def.theme].name),def.boss?'Boss：'+BOSS[def.boss].name:(def.idx==0&&mode=='level'?'踩着拍子点下面的蔬菜打鼓':'第 1 波'),2.2);
+ banner(mode=='daily'?'每日挑战':mode=='endless'?'无尽模式':('关卡 '+lvName(def.idx)+'  '+THEME[def.theme].name),def.boss?'Boss：'+BOSS[def.boss].name:(def.idx==0&&mode=='level'?'踩中蔬菜的节拍攒子弹，点虫子开火':'第 1 波'),2.2);
 }
 // 预热：提前生成本关会出现的模型并编译着色器，避免第一只虫子出场时卡顿
 function prewarm(def){const keys=new Set(def.pool.map(t=>BT[t].model));if(def.boss){keys.add(BOSS[def.boss].model);if(def.boss=='queen')keys.add('egg')}
@@ -847,7 +845,7 @@ function updateFlow(dt){const L=G.lv;
    if(G.waveI<L.waves.length-1){G.waveI++;G.waveT=0;G.spawnI=0;banner('第 '+(G.waveI+1)+' 波',G.waveI==L.waves.length-1&&!L.rush?'最后一波！':'',1.4)}
    else if(G.mode=='endless'){G.endlessWave++;const nl=genEndless(G.endlessWave);L.waves=nl.waves;L.spd=nl.spd;G.waveI=0;G.waveT=0;G.spawnI=0;banner('第 '+(G.endlessWave+1)+' 波','',1.2);
     if(G.endlessWave%3==0)G.items.spray=Math.min(3,G.items.spray+1);if(G.endlessWave%5==0&&G.vegs.some(v=>v.hp>0&&v.hp<3)){const v=G.vegs.find(v=>v.hp>0&&v.hp<3);v.hp++;vegMoodAuto(v);floatText('+1♥',v.obj.position.x,1.3,VZ,'#ff8aa0',30)}}
-   else{G.phase=L.rush?'rushIntro':'clear';G.phaseT=0;if(L.rush)banner('虫潮冲锋！','手指在蔬菜上来回扫',1.6)}}}
+   else{G.phase=L.rush?'rushIntro':'clear';G.phaseT=0;if(L.rush)banner('虫潮冲锋！','子弹无限 · 划过虫子就开火',1.6)}}}
  else if(G.phase=='rushIntro'){G.phaseT+=dt;if(G.phaseT>1.3){G.phase='rush';G.phaseT=0;G.rushT=5;G.camGoal={pos:new V(0,12.8,10.4),at:new V(0,0,-2.4)};
    for(let r=0;r<4;r++)for(let i=0;i<7;i++){const b=makeBug('ant',-3+i+grnd()*.4,Z0-r*1.1);b.spd*=2.1;b.rush=1}}}
  else if(G.phase=='rush'){G.rushT-=dt;if(G.rushT<=0){G.phase='clear';G.camGoal=null}}
@@ -856,7 +854,7 @@ function updateFlow(dt){const L=G.lv;
 // ---------- 结束 / 结算 ----------
 function endLevel(win){if(G.state!='play')return;G.state='over';setTimeout(()=>{if(G.state!='play')rhythmStop()},win?2200:900);G.qte=null;G.ts=1;G.camGoal=null;const L=G.lv,st=G.stats;
  const alive=aliveVegs().length,full=G.vegs.every(v=>v.hp==3);
- if(win){st.veg=alive*400;G.score+=st.veg;const acc=noteAcc();st.acc=acc;st.accPts=Math.round(acc*acc*((st.np||0)+(st.ng||0))*25/10)*10;G.score+=st.accPts}
+ if(win){st.veg=alive*400;G.score+=st.veg;const acc=noteAcc();st.acc=acc;st.accPts=Math.round(acc*acc*acc*((st.np||0)+(st.nw||0)+(st.ng||0)+(st.nm||0))*40/10)*10;G.score+=st.accPts}
  const r={win,score:G.score,alive,target:L.target,stars:0,grade:'C',best:0,newBest:false,mode:G.mode};
  if(G.mode=='endless'){r.time=G.t;r.best=SAVE.endless||0;if(G.score>r.best){SAVE.endless=G.score;r.newBest=true}if(G.t>=180)unlockAch('endless3');r.win=true}
  else if(win){r.stars=1+(alive==5?1:0)+(G.score>=L.target?1:0);const k=G.score/L.target,qOk=st.qmiss==0;
@@ -917,9 +915,9 @@ function makeBoss(key){const d=BOSS[key],o=bugObj(d.model,d.sc);o.position.set(0
  G.bugs.push(b);return b}
 
 // ---------- 受击 ----------
-function killBug(b,how,silent){if(b.dead)return;b.dead=true;b.deadT=0;const d=b.def;
+function killBug(b,how,silent){if(b.dead)return;b.dead=true;b.deadT=0;let d=b.def;
  if(d.friend&&how!='eaten'){friendHit(b);if(b.t=='firefly'&&b.light)b.light.intensity=0}
- else if(how!='eaten'&&how!='escape'){G.stats.kills++;addCombo();const k=rhythmHit(b.x,b.y,b.z,b.t=='rhino');if(k>1)G.stats.beatPts=(G.stats.beatPts||0)+Math.round(d.pts*(k-1)*mult()*(G.furyT>0?2:1));addScore(d.pts*k,b.x,b.y,b.z,k>=1.5?GOLD:k>1?'#7ee0ff':'#ffffff');SND.splat(G.combo);buzz(12);G.hitstop=.03;G.shake=Math.max(G.shake,.08)}
+ else if(how!='eaten'&&how!='escape'){G.stats.kills++;addCombo();if(G.boss&&!G.boss.dead&&!b.boss&&G.lv.boss)d=Object.assign({},d,{pts:Math.round(d.pts*.2)});const k=rhythmHit(b.x,b.y,b.z,b.t=='rhino');if(k>1)G.stats.beatPts=(G.stats.beatPts||0)+Math.round(d.pts*(k-1)*mult()*(G.furyT>0?2:1));addScore(d.pts*k,b.x,b.y,b.z,k>=1.5?GOLD:k>1?'#7ee0ff':'#ffffff');SND.splat(G.combo);buzz(12);G.hitstop=.03;G.shake=Math.max(G.shake,.08)}
  if(how!='escape'){splatAt(b.x,b.z,d.splat);burst(b.x,b.y+.2,b.z,d.splat,8)}
  if(b.thread){DYN.remove(b.thread);b.thread=null}
  if(b.t=='bomber'&&how!='escape'){fartCloud(b.x,b.z)}
@@ -1075,110 +1073,134 @@ function updateQTE(rdt){const q=G.qte;if(!q)return;q.t+=rdt;
 // 虫潮冲锋：只按划过的数量计分，在 input 的划动里处理
 
 // ---- drums.js ----
-// ================= 蔬菜打鼓：5 棵蔬菜 = 5 个鼓面，踩着拍子点蔬菜就朝前方发射 =================
-// 判定：按下的时刻离四分 / 八分音符 ≤70ms = Perfect（伤害 ×2、充能踩点条、蓄力 +1），≤130ms = Good；
-//       再偏 = 哑火（不发射，这面鼓卡住 0.35 秒，断连）；同一个八分音符里连点同一面鼓也算哑火
-// 蓄力：同一面鼓累计 5 次 Perfect（哑火清零），这一发变成强化技
-// 克制：苍蝇等飞虫只有茄子的紫电打得到；南瓜锤一下破甲 / 翻甲虫；番茄炸弹溅射蚜虫群；胡萝卜箭一穿到底不会把毛毛虫打断
-// 益虫挡在弹道最前面会被误伤（紫电除外，它会绕开益虫）
+// ================= 节拍攒弹：蔬菜身上有跟着歌走的节奏点，踩中给这棵菜装子弹；点虫子 = 用子弹射它 =================
+// 节奏点：按歌曲每小节生成（主歌稀、副歌密、高潮有双押），外圈提前 LEAD 拍出现、缩到蔬菜脚下的鼓面时点它
+// 判定：≤60ms Perfect = 3 发，≤100ms Great = 2 发，≤140ms Good = 1 发；漏掉 / 提前太多 = Miss（节奏连击断）
+// 节奏连击每 10 个，额外 +1 发；每棵菜最多存 MAXAMMO 发；累计 5 个 Perfect，下一发是强化弹
+// 射击：点场上的虫子，自动挑最克制它、且有子弹的那棵菜开火（飞虫只能用茄子的紫电）；没子弹就打不了
+// 狂暴 / 虫潮：子弹不限量，点或划过虫子直接开火
 const WEAP=[
- {k:'carrot',name:'穿透箭',col:'#ff8a2a',w:.55,pierce:3,dmg:1,spd:26},
- {k:'cabbage',name:'叶浪',col:'#9ce86a',w:1.3,range:3.4,dmg:1,knock:1.4,max:3},
- {k:'tomato',name:'番茄炸弹',col:'#ff4a3a',w:.9,splash:1.1,dmg:3,spd:15,arc:1},
- {k:'pumpkin',name:'南瓜锤',col:'#ffa030',w:.65,dmg:3,spd:20},
- {k:'eggplant',name:'紫电',col:'#c27bff',chain:2,dmg:1,air:1},
+ {k:'carrot',name:'穿透箭',col:'#ff8a2a',dmg:1,spd:34,pierce:3},
+ {k:'cabbage',name:'叶浪',col:'#9ce86a',dmg:1,spd:26,area:.9,knock:1.2,max:3},
+ {k:'tomato',name:'番茄炸弹',col:'#ff4a3a',dmg:3,spd:24,arc:1,splash:1.1},
+ {k:'pumpkin',name:'南瓜锤',col:'#ffa030',dmg:3,spd:26},
+ {k:'eggplant',name:'紫电',col:'#c27bff',dmg:1,chain:2,air:1},
 ];
-const DRUM={win:{perfect:.07,good:.13},shots:[],bolts:[],hintT:0};
-const RANGE_Z=-1.2,RANGE_CH=-6.5;// 射程线（世界 z）：普通 / 强化
-let _rangeZ=RANGE_Z;
-function drumReset(){for(const s of DRUM.shots)DYN.remove(s.o);DRUM.shots=[];DRUM.bolts=[];for(const v of G.vegs){v.jam=0;v.charge=0;v.pulse=0;v.flash=null;v.lastSlot=-99}}
-// 离最近的四分 / 八分音符多远（秒）
-function drumOffset(t){const sp=RH.spb,b=t/sp;return Math.min(Math.abs(b-Math.round(b))*sp,Math.abs(b*2-Math.round(b*2))*sp/2)}
+const DRUM={win:{perfect:.06,great:.1,good:.14,early:.26},shots:[],bolts:[],notes:[],genBar:0,hintT:0,combo:0};
+const LEAD=2,MAXAMMO=12,AMMO={perfect:3,great:2,good:1};
+function drumReset(){for(const s of DRUM.shots)DYN.remove(s.o);Object.assign(DRUM,{shots:[],bolts:[],notes:[],genBar:Math.max(0,Math.ceil((songBeat()+LEAD)/4)),combo:0});
+ for(const v of G.vegs){v.ammo=G.lv.idx==0&&G.mode=='level'?2:3;v.charge=0;v.sup=0;v.pulse=0;v.flash=null}}
 function isAir(b){return !!b.def.air||(b.t=='locust'&&b.y>.25)||(b.t=='spider'&&b.state=='drop'&&b.y>1.2)}
-function canHit(b,W){if(b.dead||b.z>VZ+.2||(!b.boss&&b.z<_rangeZ))return false;if(b.t=='mole'&&b.state!='up')return false;if(b.t=='rhino'&&b.state=='charge')return false;
+function canHit(b,W){if(b.dead||b.z>VZ+.2||(!b.boss&&b.z<Z0+.4))return false;if(b.t=='mole'&&b.state!='up')return false;if(b.t=='rhino'&&b.state=='charge')return false;
  if(G.spore&&!b.boss&&Math.hypot(b.x-G.spore.x,b.z-G.spore.z)<1.5)return false;
  if(b.boss)return b.state!='enter';if(b.state=='web')return false;return W.air||!isAir(b)}
-// 某面鼓的弹道上有哪些虫子（离蔬菜最近的在前）
-function laneTargets(i,W){const vx=VX(i);return G.bugs.filter(b=>canHit(b,W)&&Math.abs(b.x-vx)<W.w+b.def.r*(b.boss?1:.5)&&(!W.range||b.z>VZ-W.range)).sort((a,b)=>b.z-a.z)}
-function boltTargets(i,n){const v=G.vegs[i],out=[];let px=v.obj.position.x,pz=VZ;
- const pool=G.bugs.filter(b=>hostile(b)&&canHit(b,WEAP[4]));
- for(let k=0;k<n;k++){let best=null,bd=1e9;for(const b of pool){if(out.includes(b))continue;const d=Math.hypot(b.x-px,b.z-pz)*(isAir(b)?.5:1)-(b.z-Z0)*.05;if(k&&Math.hypot(b.x-px,b.z-pz)>2.2)continue;if(d<bd){bd=d;best=b}}
-  if(!best)break;out.push(best);px=best.x;pz=best.z}return out}
-// 屏幕坐标 → 哪面鼓（蔬菜那一排的横向区域）
+const freeFire=()=>G.furyT>0||G.phase=='rush';
+
+// ---------- 谱面：每小节 8 个八分音符格，按段落和关卡难度放音符；车道跟着旋律走 ----------
+function genBar(bar){const al=aliveVegs().map(v=>v.i);if(!al.length)return;gseed(G.lv.idx*7919+bar*131+(G.mode=='endless'?G.endlessWave*17:0));
+ const L=G.lv,sec=RH.secI|0,lvl=Math.min(1,L.s*.18+L.l*.05),easy=L.idx==0&&G.mode=='level'&&bar<8;
+ // 每格的出音概率：拍点（0,2,4,6）高，反拍（1,3,5,7）低；副歌 / 高潮更密
+ const pOn=easy?[.9,0,.5,0,.9,0,.5,0]:[1,0,.8,0,.95,0,.8,0],pOff=easy?0:[.08,.25,.45][sec]+lvl*.3,pDbl=easy?0:[0,.08,.2][sec]+lvl*.15;
+ let last=-1;for(let k=0;k<8;k++){const p=k%2?pOff:pOn[k]*(sec==0&&!easy?.85+lvl*.15:1);if(grnd()>=p)continue;
+  const m=RH.mel[(bar*8+k)%RH.mel.length];let i=al[((m%12)*3+k)%al.length];if(i==last&&al.length>1&&k%2)i=al[(al.indexOf(i)+1)%al.length];last=i;
+  const beat=bar*4+k/2;DRUM.notes.push({i,beat});
+  if(grnd()<pDbl&&al.length>2){let j=al[(al.indexOf(i)+2)%al.length];DRUM.notes.push({i:j,beat})}}}
+function noteTick(){if(G.state!='play'||!RH.on)return;const sb=songBeat();
+ while(DRUM.genBar*4<sb+LEAD+4){if(!G.qte)genBar(DRUM.genBar);DRUM.genBar++}
+ for(const n of DRUM.notes){if(n.done)continue;const v=G.vegs[n.i];if(v.hp<=0||G.qte){n.done=1;continue}
+  if((sb-n.beat)*RH.spb>DRUM.win.good){n.done=1;noteMiss(v,'Miss')}}
+ DRUM.notes=DRUM.notes.filter(n=>!n.done)}
+function noteMiss(v,s){DRUM.combo=0;G.stats.nm=(G.stats.nm||0)+1;v.flash={c:'#8a8a8a',t:.25};floatText(s,v.obj.position.x,1.6,VZ,'#bbbbbb',24)}
+
+// ---------- 点蔬菜：判定最近的节奏点 ----------
+// 屏幕坐标 → 哪棵菜（蔬菜那一排的横向区域）
 function drumAt(x,y){if(!G.vegs)return -1;const top=worldToScreen(0,1.3,VZ)[1]-30,bot=UI.h-156;if(y<top||y>bot)return -1;
  let bi=-1,bd=1e9;for(const v of G.vegs){const sx=worldToScreen(v.obj.position.x,.5,VZ)[0],d=Math.abs(sx-x);if(d<bd){bd=d;bi=v.i}}return bd<110?bi:-1}
-
-function drumHit(i,t,rush){const v=G.vegs[i];if(!v||v.hp<=0||G.state!='play'||G.qte)return null;t=t??songTime();
- const fury=G.furyT>0,slot=Math.round(t/RH.spb*2),a=drumOffset(t);
- let j=fury?'perfect':a<=DRUM.win.perfect?'perfect':a<=DRUM.win.good?'good':rush?'good':null;
- if(!rush&&(v.jam>0||(slot==v.lastSlot&&!fury)))j=null;
- if(!j){v.jam=.35;v.charge=0;v.flash={c:'#8a8a8a',t:.3};RH.streak=0;G.stats.nm=(G.stats.nm||0)+1;breakCombo();
-  floatText('哑火',v.obj.position.x,1.5,VZ,'#bbbbbb',26);if(SFX.ctx&&MUS.bus)INS.tick(40);return 'jam'}
- v.lastSlot=slot;v.pulse=1;G.stats[j=='perfect'?'np':'ng']=(G.stats[j=='perfect'?'np':'ng']||0)+1;drumSound(i,j);
- let charged=false;if(j=='perfect'){RH.streak++;G.stats.beat=(G.stats.beat||0)+1;RH.meter=Math.min(1,RH.meter+.045);if(++v.charge>=5){v.charge=0;charged=true}}
- v.flash={c:charged?'#ffffff':j=='perfect'?GOLD:'#7ee0ff',t:.25};
+function drumHit(i,t){const v=G.vegs[i];if(!v||v.hp<=0||G.state!='play'||G.qte)return null;t=t??songTime();const tb=t/RH.spb;
+ let best=null,bd=1e9;for(const n of DRUM.notes)if(!n.done&&n.i==i){const d=Math.abs(tb-n.beat)*RH.spb;if(d<bd){bd=d;best=n}}
+ v.pulse=1;
+ if(!best||bd>DRUM.win.early){v.flash={c:'rgba(255,255,255,.5)',t:.12};if(SFX.ctx&&MUS.bus)INS.tick(60);return 'empty'}// 空拍：没有节奏点，什么都不发生
+ best.done=1;
+ if(bd>DRUM.win.good){noteMiss(v,'太早');if(SFX.ctx&&MUS.bus)INS.tick(40);return 'miss'}
+ const j=bd<=DRUM.win.perfect?'perfect':bd<=DRUM.win.great?'great':'good';G.stats[{perfect:'np',great:'nw',good:'ng'}[j]]=(G.stats[{perfect:'np',great:'nw',good:'ng'}[j]]||0)+1;
+ DRUM.combo++;let n=AMMO[j]+(DRUM.combo%10==0?1:0);
+ if(j=='perfect'){RH.streak++;G.stats.beat=(G.stats.beat||0)+1;RH.meter=Math.min(1,RH.meter+.03);if(++v.charge>=5){v.charge=0;v.sup++;floatText('强化弹！',v.obj.position.x,2.2,VZ,'#ffffff',26)}}else RH.streak=0;
  if(RH.meter>=1&&G.furyT<=0){RH.meter=0;G.fury=1}
- fire(i,j,charged);return j}
-function drumSound(i,j){const A=SFX.ctx;if(!A||!SFX.on||!MUS.bus)return;const t=A.currentTime,v=j=='perfect'?1.2:.8;
- [()=>INS.hat(t,v*1.4,true),()=>INS.clap(t,v),()=>INS.kick(t,v),()=>INS.tom(t,150,v),()=>INS.snare(t,v)][i]()}
+ const got=Math.min(n,MAXAMMO-v.ammo);v.ammo+=got;const pts=Math.round({perfect:30,great:15,good:5}[j]*(1+Math.min(DRUM.combo,100)/50));G.score+=pts;G.stats.notePts=(G.stats.notePts||0)+pts;
+ v.flash={c:j=='perfect'?GOLD:j=='great'?'#7ee0ff':'#9ce86a',t:.25};drumSound(i,j);
+ floatText({perfect:'Perfect',great:'Great',good:'Good'}[j]+(got?' +'+got+'发':' 满'),v.obj.position.x,1.7,VZ,v.flash.c,j=='perfect'?28:24);return j}
+function drumSound(i,j){const A=SFX.ctx;if(!A||!SFX.on||!MUS.bus)return;const t=A.currentTime,v=j=='perfect'?1.2:j=='great'?1:.75;
+ [()=>INS.hat(t,v*1.4,true),()=>INS.clap(t,v),()=>INS.kick(t,v),()=>INS.tom(t,150,v),()=>INS.snare(t,v)][i]();
+ const m=RH.mel[RH.mi++%RH.mel.length];INS.lead(m,v*.7)}
 
+// ---------- 点虫子：挑一棵有子弹、最克制它的菜开火 ----------
+const COUNTER={helm:3,beetle:3,aphid:2,snail:2,cater:0,rhino:3};
+function pickGun(b){const free=freeFire(),ok=v=>v.hp>0&&(free||v.ammo>0)&&canHit(b,WEAP[v.i]);const al=G.vegs.filter(ok);if(!al.length)return null;
+ if(isAir(b))return al.find(v=>v.i==4)||null;
+ const c=COUNTER[b.t];if(c!=null&&!(b.t=='beetle'&&b.state=='flip')&&!(b.t=='helm'&&!b.armor)){const v=al.find(v=>v.i==c);if(v)return v}
+ // 其余：离虫子最近的那棵；紫电留给飞虫，最后才用
+ return al.sort((p,q)=>(p.i==4)-(q.i==4)||Math.abs(p.obj.position.x-b.x)-Math.abs(q.obj.position.x-b.x))[0]}
+function shoot(b){if(G.state!='play'||G.qte)return false;const v=pickGun(b);
+ if(!v){if(!isAir(b)&&!canHit(b,WEAP[0]))return false;if(DRUM.hintT<=0){DRUM.hintT=1.6;const air=isAir(b);floatText(air&&G.vegs[4].hp>0?'茄子没子弹了！':'没子弹！踩中蔬菜的节拍',b.x,1.4,b.z,'#ff8a8a',26)}SND.miss();return false}
+ const free=freeFire(),sup=!free&&v.sup>0;if(!free)v.ammo--;if(sup)v.sup--;G.stats.shots=(G.stats.shots||0)+1;v.pulse=.6;fire(v,b,sup);return true}
 const SHOTG=new THREE.SphereGeometry(.12,10,8);
-function fire(i,j,charged){_rangeZ=charged||G.furyT>0||G.phase=='rush'?RANGE_CH:RANGE_Z;try{return fire0(i,j,charged)}finally{_rangeZ=RANGE_Z}}
-function fire0(i,j,charged){const W=WEAP[i],v=G.vegs[i],vx=v.obj.position.x,dm=(j=='perfect'?1.5:1)*(G.furyT>0?2:1)*(charged?2:1);
- if(charged)floatText(W.name+'！',vx,2,VZ,W.col,32);
- if(W.chain){const ts=boltTargets(i,charged?7:1+W.chain);let p=worldToScreen(vx,.8,VZ);const pts=[p];
-  for(const b of ts){const q=worldToScreen(b.x,b.y+b.def.y*.6,b.z);pts.push(q);drumDmg(b,W,dm,j)}
-  if(!ts.length)pts.push(worldToScreen(vx,.8,_rangeZ));DRUM.bolts.push({pts,t:.2,c:W.col});return}
- let L=laneTargets(i,W),hits;
- if(W.k=='carrot')hits=L.slice(0,charged?99:W.pierce);
- else if(W.k=='cabbage')hits=L.slice(0,charged?99:W.max);
- else if(W.k=='pumpkin')hits=charged?L:L.slice(0,1);
- else hits=L.slice(0,1);
- const far=hits.length?hits[hits.length-1]:null,tz=far?far.z:_rangeZ,tx=far?far.x:vx;
- if(W.k=='cabbage'){// 叶浪：贴地推出去的一道波，瞬间命中
-  for(const b of hits){drumDmg(b,W,dm,j);if(!b.dead&&!b.boss)b.z-=W.knock}for(let k=-2;k<=2;k++)puff(vx+k*.45,.15,VZ-1.2,'#c8ffa0');
-  if(charged){for(const b of G.bugs)if(hostile(b)&&!b.boss&&b.z>VZ-5)b.z-=W.knock;const w=aliveVegs().sort((a,b)=>a.hp-b.hp)[0];if(w&&w.hp<3){w.hp++;vegMoodAuto(w);floatText('+1♥',w.obj.position.x,1.3,VZ,'#ff8aa0',30)}}return}
- const o=new THREE.Mesh(SHOTG,pmat(W.col));o.scale.setScalar(charged?2.2:W.k=='pumpkin'?1.8:W.k=='tomato'?1.6:1.1);o.position.set(vx,.6,VZ-.3);DYN.add(o);
- const d=Math.hypot(tx-vx,tz-VZ)/W.spd;DRUM.shots.push({o,W,j,dm,hits,x0:vx,z0:VZ-.3,tx,tz,t:0,d:Math.max(.08,d),charged,lead:far})}
-// 命中结算：按虫种的克制规则
-function drumDmg(b,W,dm,j){if(b.dead)return;RH.j=j;try{
- if(b.boss){if(b.key=='strider'&&!b.stopped){hint(b,'等它停下再打');return}hurtBoss(b,dm*(b.guard>0?3:1));return}
+function fire(v,b,sup){const W=WEAP[v.i],vx=v.obj.position.x,dm=(G.furyT>0?2:1)*(sup?2:1);if(sup)floatText(W.name+'！',vx,2,VZ,W.col,30);
+ if(W.chain){const ts=[b],pool=G.bugs.filter(q=>hostile(q)&&q!==b&&canHit(q,W));let p=b;
+  for(let k=0;k<(sup?6:W.chain);k++){let n=null,nd=2.2;for(const q of pool)if(!ts.includes(q)){const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<nd){nd=d;n=q}}if(!n)break;ts.push(n);p=n}
+  const pts=[worldToScreen(vx,.8,VZ)];for(const q of ts){pts.push(worldToScreen(q.x,q.y+q.def.y*.6,q.z));drumDmg(q,W,dm)}DRUM.bolts.push({pts,t:.2,c:W.col});return}
+ const o=new THREE.Mesh(SHOTG,pmat(W.col));o.scale.setScalar(sup?2.2:W.k=='pumpkin'?1.8:W.k=='tomato'?1.6:1.1);o.position.set(vx,.6,VZ-.3);DYN.add(o);
+ const d=Math.hypot(b.x-vx,b.z-VZ)/W.spd;DRUM.shots.push({o,W,dm,b,x0:vx,z0:VZ-.3,tx:b.x,tz:b.z,t:0,d:Math.max(.08,d),sup})}
+// 命中：按武器的范围找出所有受击者
+function impact(s){const W=s.W,b=s.b,x=s.o.position.x,z=s.o.position.z,near=(R,n)=>G.bugs.filter(q=>canHit(q,W)&&Math.hypot(q.x-x,q.z-z)<R+q.def.r*.5).sort((p,q)=>Math.hypot(p.x-x,p.z-z)-Math.hypot(q.x-x,q.z-z)).slice(0,n);
+ let hits=b&&!b.dead&&canHit(b,W)?[b]:[];
+ if(W.k=='carrot'){// 穿透：沿射线方向继续往后穿
+  const dx=x-s.x0,dz=z-s.z0,L=Math.hypot(dx,dz)||1,ux=dx/L,uz=dz/L;
+  const line=G.bugs.filter(q=>canHit(q,W)&&q!==b).map(q=>{const t=(q.x-s.x0)*ux+(q.z-s.z0)*uz,px=s.x0+ux*t,pz=s.z0+uz*t;return[q,t,Math.hypot(q.x-px,q.z-pz)]}).filter(a=>a[1]>L-1.2&&a[1]<L+(s.sup?20:3.5)&&a[2]<.5+a[0].def.r*.4).sort((a,b)=>a[1]-b[1]).map(a=>a[0]);
+  hits=hits.concat(line).slice(0,s.sup?99:W.pierce)}
+ else if(W.k=='cabbage'){hits=near(s.sup?2.4:W.area,s.sup?99:W.max);for(let k=-2;k<=2;k++)puff(x+k*.3,.15,z,'#c8ffa0')}
+ else if(W.k=='tomato'){hits=near(W.splash*(s.sup?2:1),99);burst(x,.3,z,'#ff4a3a',12)}
+ else if(W.k=='pumpkin'&&s.sup)hits=near(1.6,99);
+ for(const q of hits){drumDmg(q,W,s.dm);if(W.k=='cabbage'&&!q.dead&&!q.boss)q.z-=W.knock}
+ if(!hits.length)puff(x,.2,z,'#ffffff')}
+// 伤害结算：按虫种的克制规则
+function drumDmg(b,W,dm){if(b.dead)return;
+ if(b.boss){if(b.key=='strider'&&!b.stopped){hint(b,'等它停下再打');return}hurtBoss(b,W.dmg*dm*(b.guard>0?3:1));G.score+=Math.round(W.dmg*10*Math.min(DRUM.combo,100)/50);return}
  if(b.def.friend){killBug(b,'hit');return}
  const t=b.t,heavy=W.k=='pumpkin',n=W.dmg*dm;
  switch(t){
   case 'helm':if(b.armor&&!heavy){b.armor=0;b.armorT=.45;swapModel(b,'ant');SND.shell();burst(b.x,.5,b.z,'#8a5428',6);hint(b,'破甲！再打一发');return}killBug(b,'hit');return;
-  // 铁甲虫：南瓜锤任意命中、其他鼓 Perfect 命中都能把它翻过来；Good 只会弹开
-  case 'beetle':if(b.state!='flip'){if(heavy||j=='perfect'){bugHit(b,'flip');return}SND.shell();hint(b,'要 Perfect 或南瓜锤才翻得动');return}killBug(b,'hit');return;
+  case 'beetle':if(b.state!='flip'){b.knock=(b.knock||0)+(heavy?2:1);if(b.knock>=2){b.knock=0;bugHit(b,'flip');return}SND.shell();hint(b,'再打一发就翻过来');return}killBug(b,'hit');return;
   case 'cater':if(W.k=='carrot'||n>=3||b.short){killBug(b,'hit');return}splitCater(b);return;
   case 'aphid':case 'snail':case 'rhino':b.hp-=n;if(b.hp<=0)killBug(b,'hit');else{hitFx(b);if(t=='rhino')G.shake=.06}return;
-  default:killBug(b,'hit')}}finally{RH.j=null}}
+  default:killBug(b,'hit')}}
 
-function drumTick(rdt,dt){for(const v of G.vegs||[]){if(v.jam>0)v.jam-=rdt;if(v.pulse>0)v.pulse=Math.max(0,v.pulse-rdt*5);if(v.flash){v.flash.t-=rdt;if(v.flash.t<=0)v.flash=null}
+function drumTick(rdt,dt){noteTick();
+ for(const v of G.vegs||[]){if(v.pulse>0)v.pulse=Math.max(0,v.pulse-rdt*5);if(v.flash){v.flash.t-=rdt;if(v.flash.t<=0)v.flash=null}
   if(v.model&&v.hp>0){const p=v.pulse,k=1.3;v.model.scale.set(k*(1+.1*p),k*(1-.16*p),k*(1+.1*p))}}
- for(const s of DRUM.shots){s.t+=dt;const f=Math.min(1,s.t/s.d),tx=s.lead&&!s.lead.dead?s.lead.x:s.tx,tz=s.lead&&!s.lead.dead?s.lead.z:s.tz;
-  s.o.position.set(lerp(s.x0,tx,f),.6+(s.W.arc?Math.sin(f*Math.PI)*2.2:0),lerp(s.z0,tz,f));s.o.rotation.x+=dt*12;
-  if(f>=1){s.done=1;const W=s.W;if(W.k=='tomato'&&s.hits.length){const c=s.hits[0],R=W.splash*(s.charged?2:1);burst(c.x,.3,c.z,'#ff4a3a',12);
-    for(const b of G.bugs)if(canHit(b,W)&&Math.hypot(b.x-c.x,b.z-c.z)<R+b.def.r*.5)drumDmg(b,W,s.dm,s.j)}
-   else for(const b of s.hits)drumDmg(b,W,s.dm,s.j);if(!s.hits.length)puff(s.o.position.x,.2,s.o.position.z,'#ffffff')}}
+ for(const s of DRUM.shots){s.t+=dt;const f=Math.min(1,s.t/s.d);if(s.b&&!s.b.dead){s.tx=s.b.x;s.tz=s.b.z}
+  s.o.position.set(lerp(s.x0,s.tx,f),.6+(s.W.arc?Math.sin(f*Math.PI)*2.2:0),lerp(s.z0,s.tz,f));s.o.rotation.x+=dt*12;if(f>=1){s.done=1;impact(s)}}
  DRUM.shots=DRUM.shots.filter(s=>{if(s.done)DYN.remove(s.o);return !s.done});
  for(const b of DRUM.bolts)b.t-=rdt;DRUM.bolts=DRUM.bolts.filter(b=>b.t>0);if(DRUM.hintT>0)DRUM.hintT-=rdt}
-// 点到场地上（不是蔬菜）：提示一次
-function fieldTap(x,y){const g=screenToGround(x,y);if(g)puff(g.x,.05,g.z,'#ffffff');if(DRUM.hintT<=0){DRUM.hintT=2.5;floatScreen('点下面的蔬菜打鼓！',360,UI.h-380,'#fff',30)}}
-function noteAcc(){const s=G.stats,n=(s.np||0)+(s.ng||0)+(s.nm||0);return n?((s.np||0)+(s.ng||0)*.5)/n:0}
+// 点到空地：提示一次
+function fieldTap(x,y){const g=screenToGround(x,y);if(g)puff(g.x,.05,g.z,'#ffffff')}
+function noteAcc(){const s=G.stats,n=(s.np||0)+(s.nw||0)+(s.ng||0)+(s.nm||0);return n?((s.np||0)+(s.nw||0)*.7+(s.ng||0)*.4)/n:0}
 
-// 鼓面：每棵蔬菜脚下一圈，拍点时外圈收拢到鼓面；下方写武器名和蓄力格
-function drawDrums(c){if(G.state!='play'||!G.vegs)return;const sb=songBeat(),bp=((sb*2)%1+1)%1,H=UI.h,q=!!G.qte;c.save();
- // 射程线：虫子越过这条虚线才打得到；拍点时微微发亮
- if(!q){const a=worldToScreen(-FENCE,0,RANGE_Z),b=worldToScreen(FENCE,0,RANGE_Z);c.setLineDash([18,12]);c.lineWidth=4;c.strokeStyle=`rgba(255,240,180,${.35+.35*(1-bp)})`;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.setLineDash([]);T(c,'射程',b[0]-8,b[1]-18,18,'rgba(255,240,180,.9)','right')}
+// 鼓面 + 节奏点：外圈从 LEAD 拍前开始缩，缩到鼓面那一刻点蔬菜；下方显示武器名和子弹数
+function drawDrums(c){if(G.state!='play'||!G.vegs)return;const sb=songBeat(),H=UI.h,q=!!G.qte;c.save();
  for(const v of G.vegs){const W=WEAP[v.i],[x,y]=worldToScreen(v.obj.position.x,0,VZ+.15),rx=Math.abs(worldToScreen(v.obj.position.x+.55,0,VZ+.15)[0]-x),ry=rx*.42;
   if(v.hp<=0){c.globalAlpha=.4;c.strokeStyle='#555';c.lineWidth=3;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.stroke();c.globalAlpha=1;continue}
-  c.globalAlpha=q?.25:1;c.fillStyle=v.flash?v.flash.c:v.jam>0?'rgba(90,90,90,.6)':'rgba(255,255,255,.18)';c.globalAlpha*=v.flash?Math.min(1,v.flash.t*4)*.8:1;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill();
-  c.globalAlpha=q?.2:.9;c.strokeStyle=W.col;c.lineWidth=4;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.stroke();
-  const k=1+.55*(1-bp);c.globalAlpha=(q?.15:.55)*bp;c.lineWidth=3;c.strokeStyle='#fff';c.beginPath();c.ellipse(x,y,rx*k,ry*k,0,0,7);c.stroke();
-  c.globalAlpha=1;const ly=Math.min(worldToScreen(v.obj.position.x,0,VZ+.62)[1]+14,H-190)+26;T(c,W.name,x,ly,16,W.col);
-  for(let n=0;n<5;n++){c.fillStyle=n<v.charge?GOLD:'rgba(0,0,0,.35)';c.beginPath();c.arc(x-24+n*12,y+ry+8,4.5,0,7);c.fill()}}
+  c.globalAlpha=q?.25:1;c.fillStyle=v.flash?v.flash.c:'rgba(255,255,255,.16)';c.globalAlpha*=v.flash?Math.min(1,v.flash.t*4)*.8:1;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill();
+  c.globalAlpha=q?.2:.95;c.strokeStyle=W.col;c.lineWidth=4;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.stroke();
+  // 节奏点
+  if(!q)for(const n of DRUM.notes){if(n.done||n.i!=v.i)continue;const db=n.beat-sb;if(db>LEAD||db<-.3)continue;const k=1+1.7*Math.max(0,db)/LEAD,dbl=DRUM.notes.some(m=>m!==n&&!m.done&&m.beat==n.beat);
+   c.globalAlpha=clamp((LEAD-db)*1.5,0,1)*(db<0?.5:1);c.strokeStyle=INK;c.lineWidth=9;c.beginPath();c.ellipse(x,y,rx*k,ry*k,0,0,7);c.stroke();c.strokeStyle=dbl?'#ffffff':W.col;c.lineWidth=5;c.beginPath();c.ellipse(x,y,rx*k,ry*k,0,0,7);c.stroke()}
+  c.globalAlpha=1;const free=freeFire(),ay=Math.min(worldToScreen(v.obj.position.x,0,VZ+.62)[1]+14,H-190)+30;
+  pill(c,x-26,ay-13,52,26,v.ammo==0&&!free?'#5a2a2a':'rgba(30,20,10,.75)',W.col,15);T(c,free?'∞':v.ammo+'',x,ay,v.ammo==0&&!free?18:20,v.ammo==0&&!free?'#ff8a8a':'#fff');
+  if(v.sup)T(c,'★'+(v.sup>1?v.sup:''),x+34,ay-12,20,GOLD);
+  for(let n=0;n<5;n++){c.fillStyle=n<v.charge?GOLD:'rgba(0,0,0,.3)';c.beginPath();c.arc(x-20+n*10,y+ry+7,3.5,0,7);c.fill()}}
  for(const b of DRUM.bolts){c.globalAlpha=Math.min(1,b.t*6);c.strokeStyle=b.c;c.lineWidth=7;c.lineJoin='round';c.beginPath();
-  b.pts.forEach((p,k)=>{const jx=k&&k<b.pts.length?(Math.random()-.5)*16:0;k?c.lineTo(p[0]+jx,p[1]):c.moveTo(p[0],p[1])});c.stroke();c.strokeStyle='#fff';c.lineWidth=2.5;c.stroke()}
+  b.pts.forEach((p,k)=>{const jx=k?(Math.random()-.5)*16:0;k?c.lineTo(p[0]+jx,p[1]):c.moveTo(p[0],p[1])});c.stroke();c.strokeStyle='#fff';c.lineWidth=2.5;c.stroke()}
+ if(DRUM.combo>=5&&!q){c.globalAlpha=1;T(c,'节奏 '+DRUM.combo,360,worldToScreen(0,1.6,VZ)[1]-30,24,GOLD)}
  c.restore()}
 
 // ---- input.js ----
@@ -1202,8 +1224,9 @@ function onDown(id,x,y){audioUnlock();const t={id,x0:x,y0:y,x,y,t0:performance.n
  const q=G.qte;if(q){if(q.type=='charge'){chargeTap();t.used=true}else if(q.type=='web')webStart(x,y);return}
  // 道具拖动
  for(const it of ['spray'])if(UI.itemRect&&inRect(x,y,UI.itemRect[it])&&G.items[it]>0){t.item=it;return}
- // 打鼓：按下即判定（音游惯例），多指可同时打多面鼓
- const di=drumAt(x,y);if(di>=0){drumHit(di,t.st);t.used=true;t.drum=di;return}
+ // 蔬菜：按下即判定节奏点（音游惯例），多指可同时打多棵
+ const di=drumAt(x,y);if(di>=0){drumHit(di,t.st);t.used=true;return}
+ // 场上：点虫子 = 开火（抬起时判定，区分点和划）；狂暴 / 虫潮时划过的虫子都会被射
  t.field=true;return
  const hs=bugsAt(x,y);const b=hs[0];
  if(b){if(b.t=='snail'&&G.furyT<=0){t.drag=b;b.state='drag';return}
@@ -1211,14 +1234,13 @@ function onDown(id,x,y){audioUnlock();const t={id,x0:x,y0:y,x,y,t0:performance.n
  // 鼹鼠洞、普通点击在抬起时判定（区分点击/划动）
 }
 function onMove(id,x,y){const t=TOUCH.get(id);
- // 虫潮：手指在蔬菜上来回扫 = 连续打鼓（不判节拍）
- if(t&&t.drum!=null&&G.phase=='rush'&&!G.qte){const di=drumAt(x,y);if(di>=0&&di!=t.drum){t.drum=di;drumHit(di,null,true)}return}
  if(!t||t.used)return;const last=t.pts[t.pts.length-1];t.x=x;t.y=y;t.moved=Math.max(t.moved,Math.hypot(x-t.x0,y-t.y0));
  if(Math.hypot(x-last[0],y-last[1])<4)return;t.pts.push([x,y]);if(t.pts.length>120)t.pts.splice(1,1);
  const q=G.qte;if(q){if(q.type=='web'&&q.tracing)webMove(x,y);return}
  if(t.drag){const g=screenToGround(x,y,.2);if(g){t.drag.x=clamp(g.x,-4.6,4.6);t.drag.z=clamp(g.z,-7.5,VZ-.8);if(Math.abs(t.drag.x)>FENCE+.3){const b=t.drag;t.drag=null;b.state='walk';killBug(b,'hit');floatText('扔出去了！',b.x,1,b.z,GOLD,28)}}return}
  if(t.item)return;
- if(t.field)return;
+ if(t.field){t.moved=Math.max(t.moved,Math.hypot(x-t.x0,y-t.y0));if(freeFire()&&t.moved>14){const a=t.pts[t.pts.length-2]||t.pts[0];
+   for(const b of G.bugs){if(!hostile(b)||t.swiped.has(b))continue;const [bx,by,r]=bugScreen(b);if(segHits(a,[x,y],bx,by,r*.9)){t.swiped.add(b);shoot(b)}}}return}
  if(t.hold){if(t.moved>24)t.hold=null;return}
  if(t.moved>14){// 划动：沿路径命中
   const a=t.pts[t.pts.length-2]||last,c=[x,y];
@@ -1232,7 +1254,7 @@ function onUp(id,x,y){const t=TOUCH.get(id);TOUCH.delete(id);if(!t||t.used)retur
  const q=G.qte;if(q){if(q.type=='slash'&&t.moved>50){const dx=x-t.x0,dy=y-t.y0;slashInput(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'))}if(q.type=='web')q.tracing=false;return}
  if(t.drag){t.drag.state='walk';return}
  if(t.item){const g=screenToGround(x,y);if(g&&t.moved>30&&g.z<VZ-.5)sprayAt(clamp(g.x,-3.4,3.4),g.z);else floatScreen('把喷雾拖到场地上',360,1000,'#fff',28);return}
- if(t.field){if(t.moved<16)fieldTap(x,y);return}
+ if(t.field){if(t.moved<16){const hs=bugsAt(x,y,16);for(const b of hs)if(!b.def.friend&&shoot(b))return;if(hs.some(b=>b.def.friend)){const f=hs.find(b=>b.def.friend);hint(f,f.def.tip)}else fieldTap(x,y)}return}
  if(t.hold){t.hold=null;return}
  if(t.moved<16&&dt<350){tapAt(x,y);return}
  // 划动结束：整体手势判定
@@ -1342,8 +1364,9 @@ function drawBar(c){const H=UI.h,y0=H-152;const g=c.createLinearGradient(0,y0,0,
 // ---------- 场上提示：新虫子、手势、手指轨迹 ----------
 function drawWorldUI(c){
  for(const b of G.bugs){if(b.dead)continue;const [x,y,r]=bugScreen(b);
-  if(b.first&&G.t<12&&!SAVE.seen.ant){let li=0;for(const v of G.vegs)if(Math.abs(v.obj.position.x-b.x)<Math.abs(G.vegs[li].obj.position.x-b.x))li=v.i;const p=worldToScreen(G.vegs[li].obj.position.x,.5,VZ);
-   tag(c,'虫子在这条线上 · 跟着拍子点这棵菜',p[0],p[1]-90,'#e8392f');finger(c,p[0]+10,p[1]+10+Math.sin(G.t*6)*8,18)}
+  if(b.first&&G.t<14&&!SAVE.seen.ant){const n=DRUM.notes.find(n=>!n.done&&n.beat-songBeat()<LEAD),tut=G.stats.shots?null:n?G.vegs[n.i]:null;
+   if(tut){const p=worldToScreen(tut.obj.position.x,.5,VZ);tag(c,'圈缩到脚下时点蔬菜 = 装子弹',p[0],p[1]-90,'#e8392f');finger(c,p[0]+10,p[1]+10+Math.sin(G.t*6)*8,18)}
+   else{tag(c,'点虫子开火！',x,y-r-40,'#e8392f');finger(c,x+10,y+10+Math.sin(G.t*6)*8,18)}}
   else if(b===G.tipBug){tag(c,b.def.name+'：'+b.def.tip,x,y-r-34,b.def.friend?'#2f8a3a':'#6a3fb8','#fff',22)}
   if(b.def.friend&&b.t=='lady')ring(c,x,y,r,'rgba(126,224,74,.8)',4);
   if(b.t=='firefly'&&NIGHT)ring(c,x,y,r,'rgba(126,224,74,.6)',4,0,6.29,[8,6]);
@@ -1392,7 +1415,7 @@ function drawResult(c,dt){const r=G.result,H=UI.h;G.resultT+=dt;const t=G.result
  T(c,title,360,y0+48,G.mode=='endless'?30:38,'#fff');
  if(G.mode=='level'&&r.win)[[220,y0+160,52],[360,y0+135,66],[500,y0+160,52]].forEach(([x,y,R],i)=>{const on=i<r.stars&&t>.5+i*.25;if(on&&!r['s'+i]){r['s'+i]=1;SND.star(i)}star(c,x,y,R,on?['#fff07a','#f0a020']:['#c8b8a0','#9a8a70'])});
  const shown=Math.min(r.score,r.score*clamp((t-.4)/.8,0,1));T(c,fmt(shown),360,y0+275,84,'#3a8a3a',undefined,'#fff',14);if(r.newBest&&t>1.2)T(c,'新纪录!',588,y0+220,28,'#e8392f',undefined,'#fff');
- const st=G.stats,L=[['消灭虫子 ×'+st.kills,st.base],['连击奖励（最高 '+G.maxCombo+'）',st.combo],['一划多杀 ×'+st.multiN,st.multi+st.rush],['踩点击杀 ×'+(st.beat||0),st.beatPts||0],['节奏准确率 '+Math.round((st.acc||0)*100)+'%（Miss '+(st.nm||0)+'）',st.accPts||0],['QTE（'+st.perfect+' Perfect / '+st.good+' Good）',st.qte],
+ const st=G.stats,L=[['消灭虫子 ×'+st.kills,st.base],['连击奖励（最高 '+G.maxCombo+'）',st.combo],['一划多杀 ×'+st.multiN,st.multi+st.rush],['节奏点 '+((st.np||0)+(st.nw||0)+(st.ng||0))+'（Perfect '+(st.np||0)+' / Miss '+(st.nm||0)+'）',st.notePts||0],['节奏准确率 '+Math.round((st.acc||0)*100)+'%',st.accPts||0],['QTE（'+st.perfect+' Perfect / '+st.good+' Good）',st.qte],
   ['Boss',st.bossPts],['蔬菜完好 ×'+r.alive,st.veg],['误伤益虫 ×'+st.friend,-st.friend*300]].filter(a=>a[1]||a[0].startsWith('消灭'));
  L.forEach(([a,b],i)=>{const neg=b<0;T(c,a,96,y0+360+i*44,25,neg?'#c0392b':'#5a3a1c','left',null);T(c,(neg?'':'')+fmt(b),624,y0+360+i*44,25,neg?'#c0392b':'#5a3a1c','right',null)});
  let y=y0+360+L.length*44+30;
@@ -1455,7 +1478,7 @@ function updateMech(dt){const L=G.lv;
  if(L.spores){G.nextSpore-=dt;if(G.nextSpore<0&&!G.spore){G.nextSpore=12+grnd()*5;G.spore={x:-2+grnd()*4,z:-4+grnd()*4,t:5}}
   if(G.spore){G.spore.t-=dt;if(G.spore.t<0)G.spore=null}}
  // 夜晚：手指按住处就是手电筒
- if(NIGHT){const L0=LIGHTS[0];let lit=false;const pv=G.vegs.find(v=>v.pulse>.15);if(pv){L0.position.set(pv.obj.position.x,1.8,VZ-2.6);lit=true}else for(const t of TOUCH.values()){const g=screenToGround(t.x,t.y);if(g){L0.position.set(g.x,1.8,g.z);lit=true;break}}
+ if(NIGHT){const L0=LIGHTS[0];let lit=false;for(const t of TOUCH.values()){const g=screenToGround(t.x,t.y);if(g){L0.position.set(g.x,1.8,g.z);lit=true;break}}
   L0.intensity=lerp(L0.intensity,lit?32:(G.lastTorch?14:0),.2);if(lit)G.lastTorch=1;
   W.hemi.intensity=G.dark>0?.04:THEME.night.hemi[2]}}
 // 孢子区域：手势反转——区域内划动当点击、点击当划动（在 input 前处理）
