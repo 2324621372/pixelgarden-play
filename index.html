@@ -687,9 +687,9 @@ function onBeat(bi){// 拍点光：判定圈、蔬菜律动
 // 当前时刻离最近拍点的距离（秒）——用 8 分音符做网格，第二档更宽容
 function beatOffset(){const b=songBeat(),sp=RH.spb,d=(b-Math.round(b))*sp,d8=(b*2-Math.round(b*2))*sp/2;return Math.abs(d)<=Math.abs(d8)*1.6?d:d8}
 // 击杀钩子：奏旋律 + 踩点判定
-function rhythmHit(x,y,z,big){if(!RH.on)return 1;const off=beatOffset(),a=Math.abs(off);const m=RH.mel[RH.mi++%RH.mel.length];
- let k=1;if(a<=BEAT_WIN.perfect){k=1.5;RH.onBeat++;RH.streak++;RH.meter=Math.min(1,RH.meter+.06);G.stats.beat=(G.stats.beat||0)+1;beatFx(x,y,z,'踩点!',GOLD)}
- else if(a<=BEAT_WIN.good){k=1.2;RH.streak++;RH.meter=Math.min(1,RH.meter+.03);beatFx(x,y,z,'好拍',JCOL2)}else{RH.streak=0}
+function rhythmHit(x,y,z,big){if(!RH.on)return 1;const j=typeof NOTE!='undefined'?NOTE.j:null;if(j)NOTE.j=null;const off=j=='perfect'?0:j=='good'?BEAT_WIN.good:j=='none'?1:beatOffset(),a=Math.abs(off);const m=RH.mel[RH.mi++%RH.mel.length];
+ const ring=!!j&&j!='none';let k=1;if(a<=BEAT_WIN.perfect){k=ring?2:1.5;RH.onBeat++;RH.streak++;RH.meter=Math.min(1,RH.meter+.06);G.stats.beat=(G.stats.beat||0)+1;beatFx(x,y,z,'踩点!',GOLD)}
+ else if(a<=BEAT_WIN.good){k=ring?1:1.2;RH.streak++;RH.meter=Math.min(1,RH.meter+.03);beatFx(x,y,z,'好拍',JCOL2)}else{RH.streak=0}
  if(SFX.on&&SFX.ctx&&MUS.bus){INS.lead(m+(big?12:0),k>1?1:.7);if(k>=1.5&&RH.streak%4==0)INS.lead(m+7,.5)}
  if(RH.meter>=1&&G.furyT<=0){RH.meter=0;G.fury=1}
  return k}
@@ -812,9 +812,9 @@ function startLevel(def,mode='level'){
   stats:{kills:0,base:0,combo:0,multi:0,multiN:0,qte:0,perfect:0,good:0,qmiss:0,friend:0,rush:0,veg:0,bossPts:0},
   hint:{},result:null,frogT:0,hen:null,frog:null,seenNew:{}});
  G.vegs=VK.map((k,i)=>{const o=new THREE.Group();o.position.set(VX(i),0,VZ);DYN.add(o);const v={i,k,hp:3,mood:'',obj:o,shake:0,webbed:false,model:null};setVegMood(v,'');return v});
- CAM.position.copy(CAMHOME.pos);CAM.lookAt(CAMHOME.at);G.camGoal=null;G.lastHB=-1;G.muffle=0;G.beatFx=[];rhythmStart(def);
+ CAM.position.copy(CAMHOME.pos);CAM.lookAt(CAMHOME.at);G.camGoal=null;G.lastHB=-1;G.muffle=0;G.beatFx=[];rhythmStart(def);noteReset();
  prewarm(def);R3.shadowMap.needsUpdate=true;
- banner(mode=='daily'?'每日挑战':mode=='endless'?'无尽模式':('关卡 '+lvName(def.idx)+'  '+THEME[def.theme].name),def.boss?'Boss：'+BOSS[def.boss].name:(def.idx==0&&mode=='level'?'用手指消灭虫子，保护蔬菜':'第 1 波'),2.2);
+ banner(mode=='daily'?'每日挑战':mode=='endless'?'无尽模式':('关卡 '+lvName(def.idx)+'  '+THEME[def.theme].name),def.boss?'Boss：'+BOSS[def.boss].name:(def.idx==0&&mode=='level'?'外圈缩到虫子身上时出手':'第 1 波'),2.2);
 }
 // 预热：提前生成本关会出现的模型并编译着色器，避免第一只虫子出场时卡顿
 function prewarm(def){const keys=new Set(def.pool.map(t=>BT[t].model));if(def.boss){keys.add(BOSS[def.boss].model);if(def.boss=='queen')keys.add('egg')}
@@ -860,7 +860,7 @@ function updateFlow(dt){const L=G.lv;
 // ---------- 结束 / 结算 ----------
 function endLevel(win){if(G.state!='play')return;G.state='over';setTimeout(()=>{if(G.state!='play')rhythmStop()},win?2200:900);G.qte=null;G.ts=1;G.camGoal=null;const L=G.lv,st=G.stats;
  const alive=aliveVegs().length,full=G.vegs.every(v=>v.hp==3);
- if(win){st.veg=alive*400;G.score+=st.veg}
+ if(win){st.veg=alive*400;G.score+=st.veg;const acc=noteAcc();st.acc=acc;st.accPts=Math.round(acc*acc*((st.np||0)+(st.ng||0))*25/10)*10;G.score+=st.accPts}
  const r={win,score:G.score,alive,target:L.target,stars:0,grade:'C',best:0,newBest:false,mode:G.mode};
  if(G.mode=='endless'){r.time=G.t;r.best=SAVE.endless||0;if(G.score>r.best){SAVE.endless=G.score;r.newBest=true}if(G.t>=180)unlockAch('endless3');r.win=true}
  else if(win){r.stars=1+(alive==5?1:0)+(G.score>=L.target?1:0);const k=G.score/L.target,qOk=st.qmiss==0;
@@ -1078,6 +1078,66 @@ function updateQTE(rdt){const q=G.qte;if(!q)return;q.t+=rdt;
  else if(q.type=='web'){if(q.t>q.dur)webDone(false)}}
 // 虫潮冲锋：只按划过的数量计分，在 input 的划动里处理
 
+// ---- notes.js ----
+// ================= 缩圈判定：每只虫子身上一个外圈，按拍缩到虫子身上，那一刻做对手势才算击杀 =================
+// 外圈出现在音符前 LEAD 拍，缩到虫身的时刻落在半拍网格上；同一个半拍最多 1~2 个音符（后期可能要两指同时出手）
+// 太早出手 =「早了」，圈错过 =「Miss」：断连，这只虫子休息 1 拍后重新排一个圈
+// 只管「最后一击」：盔甲蚁先破甲、铁甲虫先翻面、蜘蛛先断丝，这些步骤随时可做，做完才排圈
+// 不走圈的：蜗牛（拖）、蝗虫（落地拍）、鼹鼠（冒头拍）、犀牛（冲锋 QTE）、虫卵、虫潮；狂暴期间全部一点即死
+const NOTE={at:null,player:false,j:null,slots:new Map(),win:{perfect:.07,good:.13},frozen:false};
+const RING_T={ant:'tap',bomber:'tap',helm:'tap',beetle:'tap',spider:'tap',fly:'swipe',aphid:'circle',cater:'slice'};
+const RING_C={tap:'#ffd23f',swipe:'#7ee0ff',circle:'#9cff6a',slice:'#ff8ad8'};
+const RING_G={tap:'',swipe:'划',circle:'圈',slice:'切'};
+// 画圈、纵划要一段时间才完成，判定放宽一半
+const noteWin=b=>NOTE.win.good*(RING_T[b.t]=='circle'||RING_T[b.t]=='slice'?1.5:1);
+function noteLead(){return G.lv.boss?1.5:G.lv.s>=3?1.75:2}
+function noteGated(b){return !!RING_T[b.t]&&!b.boss&&!b.rush}
+function noteReady(b){if(b.dead||!noteGated(b))return false;if(b.t=='helm'&&b.armor)return false;if(b.t=='beetle'&&b.state!='flip')return false;
+ if(b.t=='spider'&&(b.state=='drop'||b.state=='web'||b.state=='fall'))return false;return true}
+function noteAssign(b,minB){const per=G.lv.s>=2||G.mode!='level'?2:1;let h=Math.ceil(minB*2);while((NOTE.slots.get(h)||0)>=per)h++;NOTE.slots.set(h,(NOTE.slots.get(h)||0)+1);b.nb=h/2}
+function noteFree(b){if(b.nb==null)return;const h=Math.round(b.nb*2),n=NOTE.slots.get(h)||0;if(n>1)NOTE.slots.set(h,n-1);else NOTE.slots.delete(h);b.nb=null}
+function noteReset(){NOTE.slots.clear();NOTE.at=null;NOTE.j=null;NOTE.frozen=false}
+function noteMiss(b,label){noteFree(b);b.rest=songBeat()+1;if(b.tgt&&b.z<VZ-1.6)b.z=Math.min(VZ-1.6,b.z+.6);G.stats.nm=(G.stats.nm||0)+1;RH.streak=0;breakCombo();beatFx(b.x,b.y,b.z,label,'#ff6a5a')}
+// 每帧：排圈、判 Miss；QTE / 狂暴时清空所有圈，结束后重新按网格排
+function noteTick(){if(!RH.on||G.state!='play'||G.paused)return;const sb=songBeat(),frozen=!!G.qte||G.furyT>0;
+ if(frozen&&!NOTE.frozen){for(const b of G.bugs)noteFree(b);NOTE.slots.clear()}NOTE.frozen=frozen;if(frozen)return;
+ for(const b of G.bugs){if(!noteGated(b))continue;
+  if(!noteReady(b)){if(b.nb!=null)noteFree(b);continue}
+  if(b.nb==null){if(b.rest&&sb<b.rest)continue;b.rest=0;const follow=b.age>1.2&&(b.t=='helm'||b.t=='beetle'||b.t=='spider');noteAssign(b,sb+(follow?1.25:noteLead()+(b.first?2:0)));continue}
+  if((sb-b.nb)*RH.spb>noteWin(b))noteMiss(b,'Miss')}
+ for(const h of NOTE.slots.keys())if(h<sb*2-4)NOTE.slots.delete(h)}
+// 离音符多远（秒），没有圈 = 很远；点击时优先判定最该打的那只
+function noteDist(b,t){return b.nb==null?99:Math.abs(t-b.nb*RH.spb)}
+
+// 手势入口：标记「玩家出手」，击杀时做时机判定
+const _bhNote=bugHit;
+bugHit=function(b,ges,info){NOTE.player=true;NOTE.ges=ges;try{return _bhNote(b,ges,info)}finally{NOTE.player=false}};
+const _kbNote=killBug;
+killBug=function(b,how,silent){
+ if(how=='hit'&&NOTE.player&&!b.dead&&noteGated(b)&&G.furyT<=0&&RH.on&&G.state=='play'){
+  const t=NOTE.at!=null?NOTE.at:songTime();
+  if(b.nb==null){if(NOTE.ges!='swipe'||RING_T[b.t]=='swipe')hint(b,'等外圈缩到它身上');return}
+  const off=t-b.nb*RH.spb,a=Math.abs(off);NOTE.lastOff=off;
+  // 判定外：提前半拍以内 = 抢拍（断连）；更早只提示，划动顺带扫过的虫子不受罚
+  if(a>noteWin(b)){if(off<0&&-off<RH.spb*.5){noteMiss(b,'早了');SND.miss()}else if(NOTE.ges!='swipe')hint(b,'等外圈缩到它身上');return}
+  NOTE.j=a<=NOTE.win.perfect*(noteWin(b)/NOTE.win.good)?'perfect':'good';G.stats[NOTE.j=='perfect'?'np':'ng']=(G.stats[NOTE.j=='perfect'?'np':'ng']||0)+1;noteFree(b)}
+ return _kbNote(b,how,silent)};
+
+// 外圈：白色细圈 = 虫子身上的判定圈；彩色粗圈从外面缩进来（颜色 = 手势）
+// 节奏准确率：Perfect 1 / Good 0.5 / Miss 0；通关奖励 = 准确率² × 击中数 × 25
+function noteAcc(){const s=G.stats,n=(s.np||0)+(s.ng||0)+(s.nm||0);return n?((s.np||0)+(s.ng||0)*.5)/n:0}
+function drawRings(c){if(!RH.on||G.state!='play'||G.qte||G.furyT>0)return;const sb=songBeat(),L=noteLead();c.save();
+ for(const b of G.bugs){if(b.dead||b.nb==null)continue;const db=b.nb-sb;if(db>L||db*RH.spb<-noteWin(b))continue;
+  const [x,y,r]=bugScreen(b),g=RING_T[b.t],col=RING_C[g],f=clamp(db/L,0,1),R=r+Math.min(r*2.4,96)*f,near=Math.abs(db)*RH.spb<NOTE.win.perfect*1.5;
+  c.globalAlpha=clamp((1-f)*4,0,1);c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=3;c.beginPath();c.arc(x,y,r,0,7);c.stroke();
+  if(near){c.fillStyle='rgba(255,255,255,.3)';c.beginPath();c.arc(x,y,r,0,7);c.fill()}
+  c.strokeStyle=INK;c.lineWidth=10;c.beginPath();c.arc(x,y,R,0,7);c.stroke();c.strokeStyle=col;c.lineWidth=6;c.beginPath();c.arc(x,y,R,0,7);c.stroke();
+  if(RING_G[g])T(c,RING_G[g],x,y-R-16,24,col)}
+ // Boss：每拍一圈，拍点上打伤害 ×2
+ const B=G.boss;if(B&&!B.dead&&B.state!='enter'){const [x,y,r]=bugScreen(B),f=1-(((sb%1)+1)%1),R=r*(1+.7*f);c.globalAlpha=.85;
+  c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=3;c.beginPath();c.arc(x,y,r,0,7);c.stroke();c.strokeStyle=GOLD;c.lineWidth=5;c.beginPath();c.arc(x,y,R,0,7);c.stroke()}
+ c.restore()}
+
 // ---- input.js ----
 // ================= 输入：多指触控 → 手势识别 → 地面拾取 =================
 // UI 坐标统一为 720 宽的逻辑像素（UI.k = 屏幕像素 / 逻辑像素）
@@ -1093,7 +1153,7 @@ function bugsAt(x,y,extra=0){const out=[];for(const b of G.bugs){if(b.dead||(b.t
 function segHits(a,b,cx,cy,r){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1,t=clamp(((cx-a[0])*dx+(cy-a[1])*dy)/L,0,1);return Math.hypot(a[0]+dx*t-cx,a[1]+dy*t-cy)<r}
 function toLogic(e){const r=UC.getBoundingClientRect();return[(e.clientX-r.left)/r.width*UI.w,(e.clientY-r.top)/r.height*UI.h]}
 
-function onDown(id,x,y){audioUnlock();const t={id,x0:x,y0:y,x,y,t0:performance.now(),pts:[[x,y]],hold:null,drag:null,item:null,swiped:new Set(),moved:0,used:false};TOUCH.set(id,t);
+function onDown(id,x,y){audioUnlock();const t={id,x0:x,y0:y,x,y,t0:performance.now(),pts:[[x,y]],hold:null,drag:null,item:null,swiped:new Set(),moved:0,used:false,st:songTime()};TOUCH.set(id,t);
  if(G.state!='play'){uiTap(x,y);t.used=true;return}
  if(uiTap(x,y)){t.used=true;return}
  const q=G.qte;if(q){if(q.type=='charge'){chargeTap();t.used=true}else if(q.type=='web')webStart(x,y);return}
@@ -1123,7 +1183,7 @@ function onUp(id,x,y){const t=TOUCH.get(id);TOUCH.delete(id);if(!t||t.used)retur
  if(t.drag){t.drag.state='walk';return}
  if(t.item){const g=screenToGround(x,y);if(g&&t.moved>30&&g.z<VZ-.5)sprayAt(clamp(g.x,-3.4,3.4),g.z);else floatScreen('把喷雾拖到场地上',360,1000,'#fff',28);return}
  if(t.hold){t.hold=null;return}
- if(t.moved<16&&dt<350){tapAt(x,y);return}
+ if(t.moved<16&&dt<350){NOTE.at=t.st;try{tapAt(x,y)}finally{NOTE.at=null}return}
  // 划动结束：整体手势判定
  const pts=t.pts;
  // 画圈：闭合且累计转角够大
@@ -1139,6 +1199,8 @@ function onUp(id,x,y){const t=TOUCH.get(id);TOUCH.delete(id);if(!t||t.used)retur
  if(G.phase=='rush'&&k){G.stats.rush+=k*50;G.score+=k*50}
  if(k>=2){const bonus=k>=5?1000:k>=3?300:100;G.stats.multiN++;addBonus(bonus,'一划'+k+'杀',0,0,0,'multi');floatScreen('一划'+k+'杀 +'+bonus,x,y-60,'#7ee0ff',36);if(k>=5)unlockAch('multi5');if(k>=10)unlockAch('multi10')}}
 function tapAt(x,y){const hs=bugsAt(x,y,10);
+ // 缩圈：重叠时先打圈最接近的那只
+ if(RH.on){const t=NOTE.at??songTime();hs.sort((a,b)=>noteDist(a,t)-noteDist(b,t))}
  for(const b of hs){if(bugHit(b,'tap'))return}
  // 点空了：附近有鼹鼠洞也没用；只给一个水花
  const g=screenToGround(x,y);if(g)puff(g.x,.05,g.z,'#ffffff')}
@@ -1280,7 +1342,7 @@ function drawResult(c,dt){const r=G.result,H=UI.h;G.resultT+=dt;const t=G.result
  T(c,title,360,y0+48,G.mode=='endless'?30:38,'#fff');
  if(G.mode=='level'&&r.win)[[220,y0+160,52],[360,y0+135,66],[500,y0+160,52]].forEach(([x,y,R],i)=>{const on=i<r.stars&&t>.5+i*.25;if(on&&!r['s'+i]){r['s'+i]=1;SND.star(i)}star(c,x,y,R,on?['#fff07a','#f0a020']:['#c8b8a0','#9a8a70'])});
  const shown=Math.min(r.score,r.score*clamp((t-.4)/.8,0,1));T(c,fmt(shown),360,y0+275,84,'#3a8a3a',undefined,'#fff',14);if(r.newBest&&t>1.2)T(c,'新纪录!',588,y0+220,28,'#e8392f',undefined,'#fff');
- const st=G.stats,L=[['消灭虫子 ×'+st.kills,st.base],['连击奖励（最高 '+G.maxCombo+'）',st.combo],['一划多杀 ×'+st.multiN,st.multi+st.rush],['踩点击杀 ×'+(st.beat||0),st.beatPts||0],['QTE（'+st.perfect+' Perfect / '+st.good+' Good）',st.qte],
+ const st=G.stats,L=[['消灭虫子 ×'+st.kills,st.base],['连击奖励（最高 '+G.maxCombo+'）',st.combo],['一划多杀 ×'+st.multiN,st.multi+st.rush],['踩点击杀 ×'+(st.beat||0),st.beatPts||0],['节奏准确率 '+Math.round((st.acc||0)*100)+'%（Miss '+(st.nm||0)+'）',st.accPts||0],['QTE（'+st.perfect+' Perfect / '+st.good+' Good）',st.qte],
   ['Boss',st.bossPts],['蔬菜完好 ×'+r.alive,st.veg],['误伤益虫 ×'+st.friend,-st.friend*300]].filter(a=>a[1]||a[0].startsWith('消灭'));
  L.forEach(([a,b],i)=>{const neg=b<0;T(c,a,96,y0+360+i*44,25,neg?'#c0392b':'#5a3a1c','left',null);T(c,(neg?'':'')+fmt(b),624,y0+360+i*44,25,neg?'#c0392b':'#5a3a1c','right',null)});
  let y=y0+360+L.length*44+30;
@@ -1392,7 +1454,7 @@ function frame(now){requestAnimationFrame(frame);let rdt=Math.min(.05,(now-_last
  const run=G.state=='play'&&!G.paused;
  if(run){if(G.hitstop>0){G.hitstop-=rdt}else{const dt=rdt*G.ts;G.t+=rdt;
    if(G.furyT>0)G.furyT-=rdt;if(G.comboT>0){G.comboT-=dt;if(G.comboT<=0&&G.combo>0){if(G.combo>=10)floatScreen('连击结束 '+G.combo,360,300,'#ffb04a',28);G.combo=0}}
-   rhythmSection();updateFlow(dt);updateBugs(dt);updateHolds(rdt);updateQTE(rdt);updateItems(dt);updateMech(dt);
+   rhythmSection();updateFlow(dt);updateBugs(dt);noteTick();updateHolds(rdt);updateQTE(rdt);updateItems(dt);updateMech(dt);
    if(G.mode=='endless'&&G.state=='play'){}}}
  if(!G.paused)rhythmTick(rdt);updateFx(run?rdt*G.ts:rdt*.3);updateCam(rdt);
  if(run||G.state=='over')for(const b of G.bugs)if(b.o.userData.wings)for(const w of b.o.userData.wings)w.visible=(now/16|0)%2==0;
@@ -1400,7 +1462,7 @@ function frame(now){requestAnimationFrame(frame);let rdt=Math.min(.05,(now-_last
  R3.render(W.sc,CAM);perfCheck(rdt);
  if(G.spore){const p=worldToScreen(G.spore.x,0,G.spore.z),e=worldToScreen(G.spore.x+1.5,0,G.spore.z),r=Math.abs(e[0]-p[0]);c.fillStyle=`rgba(200,140,255,${.22+Math.sin(G.t*6)*.06})`;c.beginPath();c.ellipse(p[0],p[1],r,r*.7,0,0,7);c.fill();T(c,'孢子：点↔划 反转',p[0],p[1],22,'#fff')}
  if(G.dark>0){c.fillStyle='rgba(0,0,10,.55)';c.fillRect(0,0,720,UI.h)}
- drawBeatFloor(c);drawWorldUI(c);drawHUD(c);drawBeatHUD(c);drawQTE(c);drawFloats(c,rdt);
+ drawBeatFloor(c);drawRings(c);drawWorldUI(c);drawHUD(c);drawBeatHUD(c);drawQTE(c);drawFloats(c,rdt);
  if(G.state=='over'&&G.result)drawResult(c,rdt);
  if(G.paused)drawPause(c)}
 
